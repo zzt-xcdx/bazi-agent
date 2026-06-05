@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 虚拟环境
+.venv/
+frontend-streamlit/.venv/
+
+# 本地配置与密钥
+.env
+*.env
+backend/.env
+frontend-streamlit/.streamlit/
+
+# SQLite 数据库文件（如果之后用）
+*.db
+
+# IDE / Cursor
+.vscode/
+.cursor/
