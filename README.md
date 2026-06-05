@@ -1,5 +1,5 @@
 为了找一个ai agent实习，从零弄一个项目吧！
-# 赛博算命 · 八字命理 Agent（WIP）
+# 生成四柱八字排盘 Agent（WIP） 进行命理分析（仅仅开心一下就好）
 
 后端：Python + FastAPI + LangChain + DeepSeek  
 前端：Streamlit
