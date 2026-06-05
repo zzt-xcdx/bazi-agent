@@ -1,4 +1,4 @@
-为了找一个ai agent实习，从零弄一个项目把
+为了找一个ai agent实习，从零弄一个项目吧！
 # 赛博算命 · 八字命理 Agent（WIP）
 
 后端：Python + FastAPI + LangChain + DeepSeek  
