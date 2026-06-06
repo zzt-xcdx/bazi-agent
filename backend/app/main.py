@@ -3,16 +3,25 @@ from __future__ import annotations
 import os
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+# 确保在导入 app.db 之前加载 .env
+load_dotenv()
+
 from app.db import Base, engine, get_session
-from app.models.db_models import Person, BaziChart, Analysis
-from app.models.schemas import BaziRequest, BaziResponse
+from app.models.db_models import Analysis, BaziChart, Compatibility, Person
+from app.models.schemas import (
+    BaziRequest,
+    BaziResponse,
+    CompatibilityRequest,
+    CompatibilityResponse,
+    ChartSummary,    
+)
 from app.services.bazi_engine import calculate_bazi
-from app.services.bazi_chain import analyze_with_llm
+from app.services.bazi_chain import analyze_with_llm, analyze_compatibility
 
 
 load_dotenv()
@@ -84,7 +93,7 @@ async def analyze_bazi(
         chart_id=chart.id,
         overview=analysis.overview,
         career=analysis.career,
-        relationship=analysis.relationship,
+        relationship_text=analysis.relationship,
         health=analysis.health,
         luck_cycles=analysis.luck_cycles,
         raw_response=None,
@@ -94,6 +103,96 @@ async def analyze_bazi(
     db.commit()
 
     return BaziResponse(chart_id=chart.id, bazi=bazi, analysis=analysis)
+
+
+def _chart_to_payload(chart: BaziChart) -> dict:
+    return {
+        "year_gz": chart.year_gz,
+        "month_gz": chart.month_gz,
+        "day_gz": chart.day_gz,
+        "hour_gz": chart.hour_gz,
+        "five_elements_json": chart.five_elements_json or "{}",
+    }
+
+
+@app.post("/api/bazi/compatibility", response_model=CompatibilityResponse)
+async def compatibility(
+    req: CompatibilityRequest,
+    db: Session = Depends(get_session),
+) -> CompatibilityResponse:
+    chart_a = db.get(BaziChart, req.chart_id_a)
+    chart_b = db.get(BaziChart, req.chart_id_b)
+
+    if not chart_a or not chart_b:
+        raise HTTPException(status_code=404, detail="指定的命盘不存在")
+
+    result = await run_in_threadpool(
+        analyze_compatibility,
+        _chart_to_payload(chart_a),
+        _chart_to_payload(chart_b),
+        req.question,
+    )
+
+    compat = Compatibility(
+        chart_a_id=chart_a.id,
+        chart_b_id=chart_b.id,
+        summary=result.split("\n", 1)[0] if result else "",
+        detail=result,
+        raw_response=result,
+        question=req.question,
+    )
+    db.add(compat)
+    db.commit()
+
+    return CompatibilityResponse(
+        chart_id_a=chart_a.id,
+        chart_id_b=chart_b.id,
+        summary=compat.summary,
+        detail=compat.detail,
+    )
+
+
+@app.get("/api/bazi/charts", response_model=list[ChartSummary])
+async def list_charts(
+    limit: int = 50,
+    db: Session = Depends(get_session),
+) -> list[ChartSummary]:
+    q = (
+        db.query(
+            BaziChart.id.label("chart_id"),
+            Person.name.label("name"),
+            Person.gender.label("gender"),
+            Person.birth_datetime.label("birth_datetime"),
+            Person.calendar.label("calendar"),
+            BaziChart.created_at.label("created_at"),
+            BaziChart.year_gz,
+            BaziChart.month_gz,
+            BaziChart.day_gz,
+            BaziChart.hour_gz,
+        )
+        .join(Person, Person.id == BaziChart.person_id)
+        .order_by(BaziChart.created_at.desc())
+        .limit(limit)
+    )
+    rows = q.all()
+    return [ChartSummary(**dict(r._mapping)) for r in rows]
+
+
+@app.delete("/api/bazi/chart/{chart_id}")
+async def delete_chart(chart_id: int, db: Session = Depends(get_session)) -> dict:
+    chart = db.get(BaziChart, chart_id)
+    if not chart:
+        raise HTTPException(status_code=404, detail="命盘不存在")
+
+    # 删除与该命盘关联的合盘记录
+    db.query(Compatibility).filter(
+        (Compatibility.chart_a_id == chart_id) | (Compatibility.chart_b_id == chart_id)
+    ).delete(synchronize_session=False)
+    # 删除关联的分析（cascade 已覆盖，但这里显式确保）
+    db.query(Analysis).filter(Analysis.chart_id == chart_id).delete(synchronize_session=False)
+    db.delete(chart)
+    db.commit()
+    return {"status": "ok", "deleted_chart_id": chart_id}
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -67,6 +67,57 @@ def _build_prompt(bazi: BaziData, req: BaziRequest) -> str:
 - 严格输出 JSON，键名必须是 overview/career/relationship/health/luck_cycles。
 """
     return instructions.strip()
+
+
+def _format_chart_summary(chart: dict) -> str:
+    five_elements = chart.get("five_elements_json", "{}")
+    return (
+        f"年柱={chart['year_gz']}、月柱={chart['month_gz']}、日柱={chart['day_gz']}、时柱={chart['hour_gz']}；"
+        f"五行分布={five_elements}"
+    )
+
+
+def _build_compatibility_prompt(
+    chart_a_desc: str, chart_b_desc: str, question: Optional[str]
+) -> str:
+    base = f"""
+你是一名命理合盘专家，下面是两个命盘的摘要，请基于他们的干支、五行、日主关系以及命理常识给出合盘结论。
+
+命盘 A：
+{chart_a_desc}
+
+命盘 B：
+{chart_b_desc}
+
+"""
+    question_part = f"当前要解答的重点是：{question}\n\n" if question else ""
+    instructions = f"""
+{base}{question_part}
+请提供：
+1. 总体互补或冲克的简要结论（不超过 150 字）。
+2. 关键风险与调候建议（不超过 200 字）。
+3. 简短一句总结（不超过 40 字）。
+"""
+    return instructions.strip()
+
+
+def analyze_compatibility(
+    chart_a: dict, chart_b: dict, question: Optional[str] = None
+) -> str:
+    llm = get_llm()
+    desc_a = _format_chart_summary(chart_a)
+    desc_b = _format_chart_summary(chart_b)
+
+    prompt = _build_compatibility_prompt(desc_a, desc_b, question)
+    messages = [
+        SystemMessage(
+            content="你是一位严谨中肯、擅长合盘分析的传统命理师。"
+        ),
+        HumanMessage(content=prompt),
+    ]
+
+    resp = llm.invoke(messages)
+    return resp.content
 
 
 def analyze_with_llm(bazi: BaziData, req: BaziRequest) -> BaziAnalysis:

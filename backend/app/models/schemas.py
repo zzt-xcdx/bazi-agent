@@ -54,3 +54,31 @@ class BaziResponse(BaseModel):
     chart_id: Optional[int] = Field(None, description="本次排盘对应的命盘 ID（数据库主键）")
     bazi: BaziData
     analysis: BaziAnalysis
+
+
+class CompatibilityRequest(BaseModel):
+    chart_id_a: int = Field(..., description="第一个命盘 ID")
+    chart_id_b: int = Field(..., description="第二个命盘 ID")
+    question: Optional[str] = Field(
+        None, description="合盘重点问题（如：适合结婚/合作？）"
+    )
+
+
+class CompatibilityResponse(BaseModel):
+    chart_id_a: int
+    chart_id_b: int
+    summary: str
+    detail: Optional[str] = Field(None, description="详细说明")
+
+
+class ChartSummary(BaseModel):
+    chart_id: int
+    name: str
+    gender: str
+    birth_datetime: datetime
+    calendar: CalendarType
+    created_at: datetime
+    year_gz: str
+    month_gz: str
+    day_gz: str
+    hour_gz: str

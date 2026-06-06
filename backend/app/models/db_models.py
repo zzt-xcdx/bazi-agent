@@ -28,7 +28,9 @@ class Person(Base):
         DateTime(timezone=False), default=datetime.utcnow, nullable=False
     )
 
-    charts: Mapped[List["BaziChart"]] = relationship(back_populates="person")
+    charts: Mapped[List["BaziChart"]] = relationship(
+        back_populates="person", cascade="all, delete-orphan"
+    )
 
 
 class BaziChart(Base):
@@ -49,7 +51,9 @@ class BaziChart(Base):
     )
 
     person: Mapped[Person] = relationship(back_populates="charts")
-    analyses: Mapped[List["Analysis"]] = relationship(back_populates="chart")
+    analyses: Mapped[List["Analysis"]] = relationship(
+        back_populates="chart", cascade="all, delete-orphan"
+    )
 
 
 class Analysis(Base):
@@ -60,7 +64,7 @@ class Analysis(Base):
 
     overview: Mapped[str] = mapped_column(Text, nullable=False)
     career: Mapped[str] = mapped_column(Text, nullable=False)
-    relationship: Mapped[str] = mapped_column(Text, nullable=False)
+    relationship_text: Mapped[str] = mapped_column(Text, nullable=False)
     health: Mapped[str] = mapped_column(Text, nullable=False)
     luck_cycles: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -72,4 +76,22 @@ class Analysis(Base):
     )
 
     chart: Mapped[BaziChart] = relationship(back_populates="analyses")
+
+
+class Compatibility(Base):
+    __tablename__ = "compatibility"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    chart_a_id: Mapped[int] = mapped_column(ForeignKey("bazi_charts.id"), nullable=False)
+    chart_b_id: Mapped[int] = mapped_column(ForeignKey("bazi_charts.id"), nullable=False)
+
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    question: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), default=datetime.utcnow, nullable=False
+    )
 
