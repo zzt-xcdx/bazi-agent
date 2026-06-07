@@ -1,4 +1,4 @@
-为了找一个ai agent实习，从ai一个项目,反向学习一波
+为了找一个ai agent实习，做一个ai项目,反向学习一波
 # 生成四柱八字排盘 | 进行命理分析
 
 后端：Python + FastAPI + LangChain + DeepSeek  
@@ -28,5 +28,6 @@ python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+      ```
 
 
