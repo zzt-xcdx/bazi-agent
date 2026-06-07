@@ -45,8 +45,22 @@
 - [ ] 接入 RAG（检索古籍经典作为知识库）
 - [ ] 其他...
 
-## 🚀 本地运行
 
+<pre> ```cd backend
+
+# 创建虚拟环境
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# macOS/Linux
+source .venv/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动服务
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000``` </pre>
 
 
 
