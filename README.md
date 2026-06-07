@@ -64,13 +64,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000</pre>
 
 ##在backend目录下新建env文件
-</pre>
-DEEPSEEK_API_KEY=sk-cbislnwgkfjbjxbogiuvlquiktjtyykwozkrdhpdbcjickea
+<pre>
+DEEPSEEK_API_KEY=你的key
 DEEPSEEK_API_BASE=https://api.siliconflow.cn/v1
 DEEPSEEK_MODEL="Pro/zai-org/GLM-4.7"
 DATABASE_URL=sqlite:///./bazi.db
-# 如需限制跨域来源可以改成具体域名，用逗号分隔
-CORS_ORIGINS=*<pre>
+CORS_ORIGINS=*</pre>
 
 
 
